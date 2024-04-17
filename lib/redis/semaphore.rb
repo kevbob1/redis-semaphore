@@ -147,8 +147,11 @@ class Redis
 
     def refresh_lock_staleness!
       simple_expiring_mutex(:refresh_locks, 10) do
-        @tokens.each do |token|
-          @redis.hset(grabbed_key, token, current_time.to_f)
+        @redis.multi do |transaction|
+          @tokens.each do |token|
+            transaction.hset(grabbed_key, token, current_time.to_f)
+          end
+          set_expiration_if_necessary(transaction)
         end
       end
     end
